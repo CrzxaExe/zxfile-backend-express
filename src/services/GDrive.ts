@@ -62,13 +62,28 @@ export class GDrive {
   /**
    * Get image metadata from GDrive
    * @param fileId id of GDrive image
-   * @returns image metadata
+   * @returns image metadata (id, name, webViewLink, mimeType, size)
    */
   static async read(fileId: string) {
     const res = await drive.files.get({
       fileId,
-      fields: "id, name, webViewLink",
+      fields: "id, name, webViewLink, mimeType, size",
     });
+
+    return res;
+  }
+
+  /**
+   * Stream image binary from GDrive directly to Express response.
+   * Use alt:'media' to get the file content instead of metadata.
+   * @param fileId id of GDrive image
+   * @returns readable stream of the image
+   */
+  static async stream(fileId: string) {
+    const res = await drive.files.get(
+      { fileId, alt: "media" },
+      { responseType: "stream" },
+    );
 
     return res;
   }

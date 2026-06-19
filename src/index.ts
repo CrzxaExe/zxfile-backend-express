@@ -15,10 +15,8 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? "http://localhost:5173")
  */
 const app = express();
 
-// Security headers (replaces elysia-helmet)
 app.use(helmet());
 
-// CORS settings (replaces @elysiajs/cors)
 app.use(
   cors({
     origin: ALLOWED_ORIGINS,
@@ -28,7 +26,6 @@ app.use(
   }),
 );
 
-// Rate limiting (replaces elysia-rate-limit)
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -38,7 +35,6 @@ app.use(
   }),
 );
 
-// Parse cookies (for JWT auth cookie)
 app.use(cookieParser());
 
 // Parse JSON bodies
@@ -47,7 +43,6 @@ app.use(express.json());
 // Parse URL-encoded bodies
 app.use(express.urlencoded({ extended: true }));
 
-// Swagger docs (replaces @elysiajs/swagger)
 const swaggerDocument = {
   openapi: "3.0.0",
   info: {
@@ -148,7 +143,14 @@ const swaggerDocument = {
       get: {
         tags: ["User"],
         summary: "Get user metadata from database by ID",
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
         responses: {
           "200": { description: "User found" },
           "404": { description: "User not found" },
@@ -159,7 +161,14 @@ const swaggerDocument = {
       get: {
         tags: ["User"],
         summary: "Search users by username",
-        parameters: [{ name: "username", in: "path", required: true, schema: { type: "string" } }],
+        parameters: [
+          {
+            name: "username",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
         responses: {
           "200": { description: "Users found" },
           "404": { description: "No users found" },
@@ -168,7 +177,14 @@ const swaggerDocument = {
       delete: {
         tags: ["User"],
         summary: "Delete user metadata from database",
-        parameters: [{ name: "username", in: "path", required: true, schema: { type: "string" } }],
+        parameters: [
+          {
+            name: "username",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
         responses: {
           "200": { description: "Successfully deleted" },
           "404": { description: "User not found" },
@@ -177,7 +193,14 @@ const swaggerDocument = {
       patch: {
         tags: ["User"],
         summary: "Update user data",
-        parameters: [{ name: "username", in: "path", required: true, schema: { type: "string" } }],
+        parameters: [
+          {
+            name: "username",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
         responses: {
           "200": { description: "Successfully updated" },
           "400": { description: "Bad request" },
@@ -195,7 +218,10 @@ const swaggerDocument = {
               schema: {
                 type: "object",
                 properties: {
-                  files: { type: "array", items: { type: "string", format: "binary" } },
+                  files: {
+                    type: "array",
+                    items: { type: "string", format: "binary" },
+                  },
                 },
               },
             },
@@ -212,7 +238,14 @@ const swaggerDocument = {
         tags: ["Drive"],
         summary: "Delete image from Google Drive",
         security: [{ cookieAuth: [] }],
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
         responses: {
           "200": { description: "Deleted successfully" },
           "401": { description: "Unauthorized" },
@@ -222,12 +255,37 @@ const swaggerDocument = {
     "/q/{id}": {
       get: {
         tags: ["Image"],
-        summary: "Get image metadata by public imageId",
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" }, description: "Public imageId" }],
+        summary: "Stream image directly (use as <img> src)",
+        description:
+          "Returns the raw image binary from Google Drive. Use this URL directly as the `src` of an `<img>` tag. " +
+          "By default returns the optimized WebP version. Add `?original=true` to get the original file.",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+            description: "Public imageId (from image metadata)",
+          },
+          {
+            name: "original",
+            in: "query",
+            required: false,
+            schema: { type: "boolean", default: false },
+            description: "Set to true to stream the original (non-optimized) version",
+          },
+        ],
         responses: {
-          "200": { description: "Image found" },
+          "200": {
+            description: "Image binary stream",
+            content: {
+              "image/webp": { schema: { type: "string", format: "binary" } },
+              "image/jpeg": { schema: { type: "string", format: "binary" } },
+              "image/png": { schema: { type: "string", format: "binary" } },
+            },
+          },
           "404": { description: "Image not found" },
-          "400": { description: "Bad request" },
+          "502": { description: "Failed to stream from Google Drive" },
         },
       },
     },
@@ -242,8 +300,14 @@ const swaggerDocument = {
                 type: "object",
                 properties: {
                   title: { type: "string" },
-                  imageId: { type: "string", description: "Original GDrive file ID" },
-                  optimizedImageId: { type: "string", description: "Optimized GDrive file ID" },
+                  imageId: {
+                    type: "string",
+                    description: "Original GDrive file ID",
+                  },
+                  optimizedImageId: {
+                    type: "string",
+                    description: "Optimized GDrive file ID",
+                  },
                   context: {
                     type: "object",
                     properties: {
@@ -269,7 +333,15 @@ const swaggerDocument = {
       delete: {
         tags: ["Image"],
         summary: "Soft delete image metadata by public imageId",
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" }, description: "Public imageId" }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+            description: "Public imageId",
+          },
+        ],
         responses: {
           "200": { description: "Successfully deleted" },
           "404": { description: "Image not found" },
@@ -281,7 +353,15 @@ const swaggerDocument = {
       patch: {
         tags: ["Image"],
         summary: "Update image metadata (title, context) by public imageId",
-        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" }, description: "Public imageId" }],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+            description: "Public imageId",
+          },
+        ],
         requestBody: {
           content: {
             "application/json": {
@@ -312,7 +392,14 @@ const swaggerDocument = {
       get: {
         tags: ["Image"],
         summary: "Get all images by author username",
-        parameters: [{ name: "username", in: "path", required: true, schema: { type: "string" } }],
+        parameters: [
+          {
+            name: "username",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
         responses: {
           "200": { description: "Images found" },
           "404": { description: "User or images not found" },
@@ -332,12 +419,16 @@ const swaggerDocument = {
   },
 };
 
-app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
-  customSiteTitle: "Zxifile API Docs",
-  swaggerOptions: {
-    defaultModelsExpandDepth: -1,
-  },
-}));
+app.use(
+  "/docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerDocument, {
+    customSiteTitle: "Zxifile API Docs",
+    swaggerOptions: {
+      defaultModelsExpandDepth: -1,
+    },
+  }),
+);
 
 // Mount all routes
 app.use("/", router);

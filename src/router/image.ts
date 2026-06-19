@@ -4,30 +4,69 @@ import { Terminal } from "../utils/Terminal";
 import { Image } from "../types/Schema-Type";
 import { Generator } from "../utils/Generator";
 import { ObjectId } from "mongodb";
+import { GDrive } from "../services/GDrive";
 
 const imageRouter = Router();
 
 /**
  * GET /q/:id
- * Get image metadata from database by public imageId
+ * Stream image binary directly from Google Drive.
+ * The frontend can use this as an <img> src directly: <img src="/q/someImageId" />
+ *
+ * Query params:
+ *   ?original=true  → stream the original (non-optimized) version
+ *   (default)       → stream the optimized WebP version
  */
 imageRouter.get("/q/:id", async (req: Request, res: Response) => {
   const id = req.params["id"] as string;
+  const useOriginal = req.query["original"] === "true";
 
   try {
+    // 1. Look up image metadata from database using public imageId
     const image = (await Database.db.findOne("images", {
       imageId: id,
     } as Pick<Image, "imageId">)) as Partial<Image> | undefined;
 
-    if (!image) {
+    if (!image || image.deleted) {
       res.status(404).json({ error: "Image not found" });
       return;
     }
 
-    res.status(200).json(image);
+    // 2. Pick which Drive file to serve
+    const fileId = useOriginal
+      ? image.imageDriveId!
+      : image.optimizedImageDriveId!;
+
+    // 3. Get file metadata to determine Content-Type
+    const meta = await GDrive.read(fileId);
+    const mimeType = useOriginal
+      ? (meta.data.mimeType ?? image.context?.mimetype ?? "image/jpeg")
+      : "image/webp"; // optimized is always WebP
+
+    // 4. Set response headers
+    res.setHeader("Content-Type", mimeType);
+    // Cache for 7 days in browser, 30 days on CDN
+    res.setHeader(
+      "Cache-Control",
+      "public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400",
+    );
+
+    // 5. Stream image binary from Google Drive → pipe to response
+    const driveStream = await GDrive.stream(fileId);
+    driveStream.data.pipe(res);
+
+    // Handle upstream errors (e.g., Drive API error mid-stream)
+    driveStream.data.on("error", (err: Error) => {
+      Terminal.error("GDrive stream error", err.message);
+      if (!res.headersSent) {
+        res.status(502).json({ error: "Failed to stream image from Drive" });
+      }
+    });
   } catch (error: Error | any) {
-    Terminal.error("Image get error", error.message);
-    res.status(400).json({ error: error.message });
+    Terminal.error("Image stream error", error.message);
+    if (!res.headersSent) {
+      res.status(400).json({ error: error.message });
+    }
   }
 });
 
