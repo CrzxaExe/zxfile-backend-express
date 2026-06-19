@@ -199,10 +199,10 @@ class UniversalDatabase {
     try {
       const col = connection?.db(process.env.APP_NAME!).collection(collection);
 
-      const res = (await col?.findOneAndDelete(
-        finder as any,
-        options,
-      )) as WithId<Entities[typeof collection]> | null | undefined;
+      const res = (await col?.findOneAndDelete(finder as any, options)) as
+        | WithId<Entities[typeof collection]>
+        | null
+        | undefined;
 
       return res;
     } catch (error: unknown) {
@@ -221,6 +221,12 @@ class UserDatabase {
     data: Omit<User, "_id">,
   ): Promise<InsertOneResult<Document> | undefined> {
     try {
+      const exist = await UniversalDatabase.findOne("users", {
+        username: data.username,
+      });
+
+      if (exist) throw new Error("Username Exist");
+
       const result = UniversalDatabase.addOne<User>("users", {
         ...data,
         password: await bcrypt.hash(data.password, 8),

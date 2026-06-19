@@ -5,7 +5,11 @@
     "dev": "ts-node-dev --respawn --transpile-only index.ts",
     "start": "ts-node index.ts",
     "build": "tsc",
-    "start:prod": "node dist/index.js"
+    "start:prod": "node dist/index.js",
+    "vercel-build": "tsc"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
