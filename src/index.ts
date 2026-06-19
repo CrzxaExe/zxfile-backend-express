@@ -219,12 +219,103 @@ const swaggerDocument = {
         },
       },
     },
+    "/q/{id}": {
+      get: {
+        tags: ["Image"],
+        summary: "Get image metadata by public imageId",
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" }, description: "Public imageId" }],
+        responses: {
+          "200": { description: "Image found" },
+          "404": { description: "Image not found" },
+          "400": { description: "Bad request" },
+        },
+      },
+    },
     "/image/create": {
       post: {
         tags: ["Image"],
         summary: "Create image metadata to database",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  imageId: { type: "string", description: "Original GDrive file ID" },
+                  optimizedImageId: { type: "string", description: "Optimized GDrive file ID" },
+                  context: {
+                    type: "object",
+                    properties: {
+                      author: { type: "string" },
+                      mimetype: { type: "string" },
+                    },
+                    required: ["author", "mimetype"],
+                  },
+                },
+                required: ["title", "imageId", "optimizedImageId", "context"],
+              },
+            },
+          },
+        },
         responses: {
           "200": { description: "Image metadata created" },
+          "400": { description: "Bad request" },
+          "404": { description: "Author not found" },
+        },
+      },
+    },
+    "/image/delete/{id}": {
+      delete: {
+        tags: ["Image"],
+        summary: "Soft delete image metadata by public imageId",
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" }, description: "Public imageId" }],
+        responses: {
+          "200": { description: "Successfully deleted" },
+          "404": { description: "Image not found" },
+          "400": { description: "Bad request" },
+        },
+      },
+    },
+    "/image/update/{id}": {
+      patch: {
+        tags: ["Image"],
+        summary: "Update image metadata (title, context) by public imageId",
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" }, description: "Public imageId" }],
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  context: {
+                    type: "object",
+                    properties: {
+                      author: { type: "string" },
+                      mimetype: { type: "string" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Successfully updated" },
+          "404": { description: "Image not found" },
+          "400": { description: "No fields to update / bad request" },
+        },
+      },
+    },
+    "/image/user/{username}": {
+      get: {
+        tags: ["Image"],
+        summary: "Get all images by author username",
+        parameters: [{ name: "username", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          "200": { description: "Images found" },
+          "404": { description: "User or images not found" },
           "400": { description: "Bad request" },
         },
       },

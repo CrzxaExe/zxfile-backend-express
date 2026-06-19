@@ -109,8 +109,9 @@ class UniversalDatabase {
    */
   static async findMany<T extends keyof Entities>(
     collection: T,
-    finder: PartialEntity<T>,
+    finder: PartialEntity<T> | Record<string, any>,
     options: FindOptions | Abortable = {},
+    useRegex: boolean = true,
   ): Promise<WithId<Entities[T]>[] | undefined> {
     if (!connection) await Database.Connect();
 
@@ -123,7 +124,14 @@ class UniversalDatabase {
       };
 
       keys.forEach((e) => {
-        query[e] = { $regex: finder[e as keyof typeof finder], $options: "i" };
+        const val = (finder as Record<string, any>)[e];
+        // Use regex search for string values when useRegex=true,
+        // otherwise use exact match (for nested fields like "context.author")
+        if (useRegex && typeof val === "string") {
+          query[e] = { $regex: val, $options: "i" };
+        } else {
+          query[e] = val;
+        }
       });
 
       const res = col?.find(query, options as FindOptions);

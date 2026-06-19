@@ -3,15 +3,32 @@ import { Database } from "../utils/Database";
 import { Terminal } from "../utils/Terminal";
 import { Image } from "../types/Schema-Type";
 import { Generator } from "../utils/Generator";
+import { ObjectId } from "mongodb";
 
 const imageRouter = Router();
 
 /**
  * GET /q/:id
- * Get image metadata from database (stub)
+ * Get image metadata from database by public imageId
  */
-imageRouter.get("/q/:id", (_req: Request, res: Response) => {
-  res.status(200).json({});
+imageRouter.get("/q/:id", async (req: Request, res: Response) => {
+  const id = req.params["id"] as string;
+
+  try {
+    const image = (await Database.db.findOne("images", {
+      imageId: id,
+    } as Pick<Image, "imageId">)) as Partial<Image> | undefined;
+
+    if (!image) {
+      res.status(404).json({ error: "Image not found" });
+      return;
+    }
+
+    res.status(200).json(image);
+  } catch (error: Error | any) {
+    Terminal.error("Image get error", error.message);
+    res.status(400).json({ error: error.message });
+  }
 });
 
 /**
@@ -72,18 +89,150 @@ imageRouter.post("/image/create", async (req: Request, res: Response) => {
 
 /**
  * DELETE /image/delete/:id
- * Delete image metadata from database (stub)
+ * Delete image metadata from database by public imageId
+ * Soft delete: sets deleted=true and records deleteAt timestamp
  */
-imageRouter.delete("/image/delete/:id", (_req: Request, res: Response) => {
-  res.status(200).json({});
+imageRouter.delete("/image/delete/:id", async (req: Request, res: Response) => {
+  const id = req.params["id"] as string;
+
+  try {
+    const image = (await Database.db.findOne("images", {
+      imageId: id,
+    } as Pick<Image, "imageId">)) as Partial<Image> | undefined;
+
+    if (!image) {
+      res.status(404).json({ error: "Image not found" });
+      return;
+    }
+
+    // Soft delete: mark as deleted with timestamp
+    const result = await Database.db.findOneAndUpdate(
+      "images",
+      { imageId: id } as Pick<Image, "imageId">,
+      {
+        deleted: true,
+        deleteAt: new Date().toISOString(),
+      } as Partial<Image>,
+    );
+
+    if (!result) {
+      res.status(404).json({ error: "Image not found" });
+      return;
+    }
+
+    res.status(200).json({ success: true, imageId: id });
+  } catch (error: Error | any) {
+    Terminal.error("Image delete error", error.message);
+    res.status(400).json({ error: error.message });
+  }
 });
 
 /**
  * PATCH /image/update/:id
- * Update image metadata from database (stub)
+ * Update image metadata (title, context) by public imageId
  */
-imageRouter.patch("/image/update/:id", (_req: Request, res: Response) => {
-  res.status(200).json({});
+imageRouter.patch("/image/update/:id", async (req: Request, res: Response) => {
+  const id = req.params["id"] as string;
+  const { title, context } = req.body as Partial<Pick<Image, "title" | "context">>;
+
+  if (!title && !context) {
+    res.status(400).json({ error: "No fields to update provided" });
+    return;
+  }
+
+  try {
+    const existing = (await Database.db.findOne("images", {
+      imageId: id,
+    } as Pick<Image, "imageId">)) as Partial<Image> | undefined;
+
+    if (!existing || existing.deleted) {
+      res.status(404).json({ error: "Image not found" });
+      return;
+    }
+
+    // Build update payload — only include provided fields
+    const updatePayload: Partial<Image> = {};
+    if (title) updatePayload.title = title;
+    if (context) {
+      // Validate context fields if provided
+      if (context.author !== undefined) {
+        // Verify author exists
+        const author = await Database.db.findOne("users", {
+          username: context.author,
+        });
+        if (!author) {
+          res.status(404).json({ error: "Author username not found" });
+          return;
+        }
+        updatePayload.context = {
+          ...existing.context,
+          ...context,
+        } as Image["context"];
+      } else {
+        updatePayload.context = {
+          ...existing.context,
+          ...context,
+        } as Image["context"];
+      }
+    }
+
+    const result = await Database.db.findOneAndUpdate(
+      "images",
+      { imageId: id } as Pick<Image, "imageId">,
+      updatePayload,
+    );
+
+    if (!result) {
+      res.status(404).json({ error: "Image not found" });
+      return;
+    }
+
+    // Return updated image data
+    const updated = await Database.db.findOne("images", {
+      _id: result._id,
+    } as Pick<Image, "_id">);
+
+    res.status(200).json({ success: true, image: updated });
+  } catch (error: Error | any) {
+    Terminal.error("Image update error", error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /image/user/:username
+ * Get all images by author username
+ */
+imageRouter.get("/image/user/:username", async (req: Request, res: Response) => {
+  const username = req.params["username"] as string;
+
+  try {
+    const author = await Database.db.findOne("users", { username });
+
+    if (!author) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    const images = await Database.db.findMany(
+      "images",
+      {
+        "context.author": username,
+      } as any,
+      {},
+      false, // exact match, not regex (nested field)
+    );
+
+    if (!images || images.length < 1) {
+      res.status(404).json([]);
+      return;
+    }
+
+    res.status(200).json(images);
+  } catch (error: Error | any) {
+    Terminal.error("Image list error", error.message);
+    res.status(400).json({ error: error.message });
+  }
 });
 
 export default imageRouter;
