@@ -100,4 +100,17 @@ authRouter.post("/login", async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * POST /auth/logout
+ * Logout
+ */
+authRouter.post("/auth/logout", async (req: Request, res: Response) => {
+  try {
+    res.clearCookie("auth");
+  } catch (error: Error | any) {
+    Terminal.error("Logout Error", error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
 export default authRouter;

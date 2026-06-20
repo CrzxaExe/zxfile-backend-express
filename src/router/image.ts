@@ -264,8 +264,16 @@ imageRouter.get(
         res.status(404).json([]);
         return;
       }
+      const mappedImages = [...images].map((e: Partial<Image>) => {
+        delete e.imageDriveId;
+        delete e.optimizedImageDriveId;
+        return {
+          ...e,
+          url: req.hostname + "/q/" + e.imageId,
+        };
+      });
 
-      res.status(200).json(images);
+      res.status(200).json(mappedImages);
     } catch (error: Error | any) {
       Terminal.error("Image list error", error.message);
       res.status(400).json({ error: error.message });
