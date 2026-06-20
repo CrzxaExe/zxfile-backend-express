@@ -16,6 +16,7 @@ import { Entities, PartialEntity, User } from "../types/Schema-Type";
 import bcrypt from "bcryptjs";
 
 let connection: MongoClient | null = null;
+let connectingPromise: Promise<MongoClient> | null = null;
 
 class UniversalDatabase {
   /**
@@ -28,10 +29,10 @@ class UniversalDatabase {
     collection: string,
     data: Omit<T, "_id">,
   ): Promise<InsertOneResult<Document> | undefined> {
-    if (!connection) await Database.Connect();
+    const client = await Database.GetConnection();
 
     try {
-      const col = connection?.db(process.env.APP_NAME!).collection(collection);
+      const col = client.db(process.env.APP_NAME!).collection(collection);
 
       const result = await col?.insertOne({
         _id: ObjectId.createFromTime(Date.now()),
@@ -54,10 +55,10 @@ class UniversalDatabase {
     collection: string,
     data: Omit<T, "_id">[],
   ): Promise<InsertManyResult<Document> | undefined> {
-    if (!connection) await Database.Connect();
+    const client = await Database.GetConnection();
 
     try {
-      const col = connection?.db(process.env.APP_NAME!).collection(collection);
+      const col = client.db(process.env.APP_NAME!).collection(collection);
       const newData = data.map((e) => {
         const obj = {
           _id: ObjectId.createFromTime(Date.now()),
@@ -87,10 +88,10 @@ class UniversalDatabase {
     finder: PartialEntity<T>,
     options: Omit<FindOneOptions, "timeoutMode"> & Abortable = {},
   ): Promise<Entities[T] | undefined> {
-    if (!connection) await Database.Connect();
+    const client = await Database.GetConnection();
 
     try {
-      const col = connection?.db(process.env.APP_NAME!).collection(collection);
+      const col = client.db(process.env.APP_NAME!).collection(collection);
 
       const res = await col?.findOne(finder as any, options);
 
@@ -113,10 +114,10 @@ class UniversalDatabase {
     options: FindOptions | Abortable = {},
     useRegex: boolean = true,
   ): Promise<WithId<Entities[T]>[] | undefined> {
-    if (!connection) await Database.Connect();
+    const client = await Database.GetConnection();
 
     try {
-      const col = connection?.db(process.env.APP_NAME!).collection(collection);
+      const col = client.db(process.env.APP_NAME!).collection(collection);
 
       const keys = Object.keys(finder);
       const query: Record<string, any> = {
@@ -161,14 +162,14 @@ class UniversalDatabase {
     collection: T,
     finder: PartialEntity<T>,
     updated: Partial<Entities[T]>,
-    options: FindOneAndUpdateOptions & { includeResultMetadata: true } = {
-      includeResultMetadata: true,
+    options: FindOneAndUpdateOptions & { includeResultMetadata: boolean } = {
+      includeResultMetadata: false,
     },
-  ): Promise<WithId<Entities[T]> | null | undefined> {
-    if (!connection) await Database.Connect();
+  ): Promise<WithId<Entities[typeof collection]> | null | undefined> {
+    const client = await Database.GetConnection();
 
     try {
-      const col = connection?.db(process.env.APP_NAME!).collection(collection);
+      const col = client.db(process.env.APP_NAME!).collection(collection);
 
       const res = (await col?.findOneAndUpdate(
         finder as any,
@@ -194,10 +195,10 @@ class UniversalDatabase {
     finder: PartialEntity<T>,
     options: FindOneAndDeleteOptions = {},
   ): Promise<WithId<Entities[typeof collection]> | null | undefined> {
-    if (!connection) await Database.Connect();
+    const client = await Database.GetConnection();
 
     try {
-      const col = connection?.db(process.env.APP_NAME!).collection(collection);
+      const col = client.db(process.env.APP_NAME!).collection(collection);
 
       const res = (await col?.findOneAndDelete(finder as any, options)) as
         | WithId<Entities[typeof collection]>
@@ -348,6 +349,27 @@ class Database {
     } catch (error: { message: string } | any) {
       Terminal.error(error.message);
     }
+  }
+
+  static async GetConnection(): Promise<MongoClient> {
+    if (connection) {
+      try {
+        // Cheap liveness check. Throws if the topology is closed/destroyed.
+        await connection.db("admin").command({ ping: 1 });
+        return connection;
+      } catch {
+        // Stale connection — drop it and fall through to reconnect.
+        connection = null;
+      }
+    }
+
+    if (!connectingPromise) {
+      connectingPromise = Database.Connect().finally(() => {
+        connectingPromise = null;
+      });
+    }
+
+    return connectingPromise;
   }
 
   ////////////////////////////////////////////////////

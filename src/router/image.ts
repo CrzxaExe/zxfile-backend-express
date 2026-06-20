@@ -22,7 +22,6 @@ imageRouter.get("/q/:id", async (req: Request, res: Response) => {
   const useOriginal = req.query["original"] === "true";
 
   try {
-    // 1. Look up image metadata from database using public imageId
     const image = (await Database.db.findOne("images", {
       imageId: id,
     } as Pick<Image, "imageId">)) as Partial<Image> | undefined;
@@ -32,18 +31,15 @@ imageRouter.get("/q/:id", async (req: Request, res: Response) => {
       return;
     }
 
-    // 2. Pick which Drive file to serve
     const fileId = useOriginal
       ? image.imageDriveId!
       : image.optimizedImageDriveId!;
 
-    // 3. Get file metadata to determine Content-Type
     const meta = await GDrive.read(fileId);
     const mimeType = useOriginal
       ? (meta.data.mimeType ?? image.context?.mimetype ?? "image/jpeg")
-      : "image/webp"; // optimized is always WebP
+      : "image/webp";
 
-    // 4. Set response headers
     res.setHeader("Content-Type", mimeType);
     // Cache for 7 days in browser, 30 days on CDN
     res.setHeader(
@@ -51,11 +47,9 @@ imageRouter.get("/q/:id", async (req: Request, res: Response) => {
       "public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400",
     );
 
-    // 5. Stream image binary from Google Drive → pipe to response
     const driveStream = await GDrive.stream(fileId);
     driveStream.data.pipe(res);
 
-    // Handle upstream errors (e.g., Drive API error mid-stream)
     driveStream.data.on("error", (err: Error) => {
       Terminal.error("GDrive stream error", err.message);
       if (!res.headersSent) {
@@ -172,7 +166,9 @@ imageRouter.delete("/image/delete/:id", async (req: Request, res: Response) => {
  */
 imageRouter.patch("/image/update/:id", async (req: Request, res: Response) => {
   const id = req.params["id"] as string;
-  const { title, context } = req.body as Partial<Pick<Image, "title" | "context">>;
+  const { title, context } = req.body as Partial<
+    Pick<Image, "title" | "context">
+  >;
 
   if (!title && !context) {
     res.status(400).json({ error: "No fields to update provided" });
@@ -242,36 +238,39 @@ imageRouter.patch("/image/update/:id", async (req: Request, res: Response) => {
  * GET /image/user/:username
  * Get all images by author username
  */
-imageRouter.get("/image/user/:username", async (req: Request, res: Response) => {
-  const username = req.params["username"] as string;
+imageRouter.get(
+  "/image/user/:username",
+  async (req: Request, res: Response) => {
+    const username = req.params["username"] as string;
 
-  try {
-    const author = await Database.db.findOne("users", { username });
+    try {
+      const author = await Database.db.findOne("users", { username });
 
-    if (!author) {
-      res.status(404).json({ error: "User not found" });
-      return;
+      if (!author) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+
+      const images = await Database.db.findMany(
+        "images",
+        {
+          "context.author": username,
+        } as any,
+        {},
+        false, // exact match, not regex (nested field)
+      );
+
+      if (!images || images.length < 1) {
+        res.status(404).json([]);
+        return;
+      }
+
+      res.status(200).json(images);
+    } catch (error: Error | any) {
+      Terminal.error("Image list error", error.message);
+      res.status(400).json({ error: error.message });
     }
-
-    const images = await Database.db.findMany(
-      "images",
-      {
-        "context.author": username,
-      } as any,
-      {},
-      false, // exact match, not regex (nested field)
-    );
-
-    if (!images || images.length < 1) {
-      res.status(404).json([]);
-      return;
-    }
-
-    res.status(200).json(images);
-  } catch (error: Error | any) {
-    Terminal.error("Image list error", error.message);
-    res.status(400).json({ error: error.message });
-  }
-});
+  },
+);
 
 export default imageRouter;
