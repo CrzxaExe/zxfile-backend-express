@@ -39,9 +39,7 @@ authRouter.post("/register", async (req: Request, res: Response) => {
       username,
     });
 
-    res.redirect(
-      (process.env.FRONTEND_URL ?? "http://localhost:3000") + "/auth/login",
-    );
+    res.status(200).json({ success: true });
   } catch (err: Error | any) {
     Terminal.error("Registration error", err);
     res.status(400).json({ error: err.message });
@@ -91,9 +89,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
       maxAge: 60 * 60 * 24 * 1000, // 1 day in ms
     });
 
-    res.redirect(
-      (process.env.FRONTEND_URL ?? "http://localhost:3000") + "/dashboard",
-    );
+    res.status(200).json({ success: true });
   } catch (error: Error | any) {
     Terminal.error("Login error", error);
     res.status(400).json({ error: error.message });
