@@ -272,7 +272,8 @@ const swaggerDocument = {
             in: "query",
             required: false,
             schema: { type: "boolean", default: false },
-            description: "Set to true to stream the original (non-optimized) version",
+            description:
+              "Set to true to stream the original (non-optimized) version",
           },
         ],
         responses: {
@@ -408,15 +409,7 @@ const swaggerDocument = {
       },
     },
   },
-  components: {
-    securitySchemes: {
-      cookieAuth: {
-        type: "apiKey",
-        in: "cookie",
-        name: "auth",
-      },
-    },
-  },
+  components: {},
 };
 
 app.use(
