@@ -3,8 +3,9 @@ import { Database } from "../utils/Database";
 import { Terminal } from "../utils/Terminal";
 import { Image } from "../types/Schema-Type";
 import { Generator } from "../utils/Generator";
-import { ObjectId } from "mongodb";
 import { GDrive } from "../services/GDrive";
+import jwt from "jsonwebtoken";
+import { AuthRequest } from "../middleware/authentication";
 
 const imageRouter = Router();
 
@@ -280,5 +281,66 @@ imageRouter.get(
     }
   },
 );
+
+/**
+ * GET /image/dahsboard
+ * Get all images for user
+ */
+imageRouter.get("/image/dashboard", async (req: Request, res: Response) => {
+  const token = req.cookies?.auth as string | undefined;
+
+  if (!token) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const decoded = jwt.verify(
+    token,
+    process.env.JWT_SECRET || "here",
+  ) as AuthRequest["user"];
+
+  if (!decoded) {
+    res.status(498).json({ error: "Token expired/invalid" });
+    return;
+  }
+
+  try {
+    const author = await Database.db.findOne("users", {
+      username: decoded.username,
+    });
+
+    if (!author) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    const images = await Database.db.findMany(
+      "images",
+      {
+        "context.author": decoded.username,
+      } as any,
+      {},
+      false, // exact match, not regex (nested field)
+    );
+
+    if (!images || images.length < 1) {
+      res.status(404).json([]);
+      return;
+    }
+    const mappedImages = [...images].map((e: Partial<Image>) => {
+      delete e.imageDriveId;
+      delete e.optimizedImageDriveId;
+      return {
+        ...e,
+        url: req.hostname + "/q/" + e.imageId,
+      };
+    });
+
+    res.status(200).json(mappedImages);
+  } catch (error: Error | any) {
+    Terminal.error("Image list error", error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
 
 export default imageRouter;
