@@ -91,7 +91,8 @@ authRouter.post("/login", async (req: Request, res: Response) => {
       maxAge: 60 * 60 * 24 * 1000, // 1 day in ms
     });
 
-    res.status(200).json({ success: true });
+    // Return username so frontend can store it (needed as context.author in image upload)
+    res.status(200).json({ success: true, username: exist.username });
   } catch (error: Error | any) {
     Terminal.error("Login error", error);
     res.status(400).json({ error: error.message });
