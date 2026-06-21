@@ -15,15 +15,26 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? "http://localhost:5173")
  */
 const app = express();
 
-app.use(helmet());
+// Helmet: allow cross-origin embedding of images (needed for <img src="..."> from other domains)
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }),
+);
 
+// Public CORS for image streaming routes — allow any origin, no credentials needed
+// Must be registered BEFORE the general CORS middleware
+app.use("/q", cors({ origin: "*", methods: ["GET"] }));
+
+// General CORS for all other routes — restricted to allowed origins with credentials
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Allow server-to-server requests (no origin) and whitelisted origins
       if (!origin || ALLOWED_ORIGINS.includes(origin)) {
         callback(null, true);
       } else {
-        callback(null, false);
+        callback(new Error(`Origin ${origin} not allowed by CORS`), false);
       }
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],

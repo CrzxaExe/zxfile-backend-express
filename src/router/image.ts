@@ -41,6 +41,9 @@ imageRouter.get("/q/:id", async (req: Request, res: Response) => {
       ? (meta.data.mimeType ?? image.context?.mimetype ?? "image/jpeg")
       : "image/webp";
 
+    // --- CORS & security headers for cross-origin image embedding ---
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     res.setHeader("Content-Type", mimeType);
     // Cache for 7 days in browser, 30 days on CDN
     res.setHeader(
