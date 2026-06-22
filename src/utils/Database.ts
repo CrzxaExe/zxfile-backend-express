@@ -276,17 +276,30 @@ class UserDatabase {
   static async findOneAndupdate(
     model: Partial<
       Pick<User, "avatarUrl" | "displayName" | "password" | "email"> & {
-        username: string;
+        _id: string;
       }
     >,
   ): Promise<WithId<User> | null | undefined> {
     try {
+      const _id = new ObjectId(model._id);
+
       if (model.password) model.password = await bcrypt.hash(model.password, 8);
+
+      // Only include fields that are explicitly provided (not undefined)
+      const updateFields: Record<string, unknown> = {};
+      if (model.displayName !== undefined) updateFields.displayName = model.displayName;
+      if (model.avatarUrl !== undefined) updateFields.avatarUrl = model.avatarUrl;
+      if (model.password !== undefined) updateFields.password = model.password;
+      if (model.email !== undefined) updateFields.email = model.email;
+
+      if (Object.keys(updateFields).length === 0) {
+        throw new Error("No fields to update");
+      }
 
       const res = await Database.db.findOneAndUpdate(
         "users",
-        { username: model.username } as Pick<User, "username">,
-        model as Partial<Pick<User, "avatarUrl" | "displayName" | "password">>,
+        { _id } as Pick<User, "_id">,
+        updateFields as Partial<Pick<User, "avatarUrl" | "displayName" | "password" | "email">>,
       );
 
       return res as WithId<User> | null | undefined;

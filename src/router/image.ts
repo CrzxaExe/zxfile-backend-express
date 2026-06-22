@@ -69,6 +69,42 @@ imageRouter.get("/q/:id", async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /image/explore
+ * Public endpoint — returns latest images for the explore page.
+ * No authentication required. Never returns Drive IDs.
+ */
+imageRouter.get("/image/explore", async (req: Request, res: Response) => {
+  const limit = Math.min(parseInt(req.query["limit"] as string) || 60, 100);
+
+  try {
+    const images = await Database.db.findMany(
+      "images",
+      {},
+      { sort: { createAt: -1 }, limit },
+      false,
+    );
+
+    if (!images || images.length === 0) {
+      res.status(200).json([]);
+      return;
+    }
+
+    const mapped = images.map((e: Partial<Image>) => ({
+      imageId: e.imageId,
+      title: e.title,
+      createAt: e.createAt,
+      author: e.context?.author ?? "unknown",
+      mimetype: e.context?.mimetype ?? "image/jpeg",
+    }));
+
+    res.status(200).json(mapped);
+  } catch (error: Error | any) {
+    Terminal.error("Explore error", error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
  * POST /image/create
  * Create image metadata to database
  */
