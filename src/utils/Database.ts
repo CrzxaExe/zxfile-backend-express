@@ -275,7 +275,10 @@ class UserDatabase {
 
   static async findOneAndupdate(
     model: Partial<
-      Pick<User, "avatarUrl" | "displayName" | "password" | "email"> & {
+      Pick<
+        User,
+        "avatarUrl" | "displayName" | "password" | "email" | "username"
+      > & {
         _id: string;
       }
     >,
@@ -287,8 +290,10 @@ class UserDatabase {
 
       // Only include fields that are explicitly provided (not undefined)
       const updateFields: Record<string, unknown> = {};
-      if (model.displayName !== undefined) updateFields.displayName = model.displayName;
-      if (model.avatarUrl !== undefined) updateFields.avatarUrl = model.avatarUrl;
+      if (model.displayName !== undefined)
+        updateFields.displayName = model.displayName;
+      if (model.avatarUrl !== undefined)
+        updateFields.avatarUrl = model.avatarUrl;
       if (model.password !== undefined) updateFields.password = model.password;
       if (model.email !== undefined) updateFields.email = model.email;
 
@@ -298,8 +303,10 @@ class UserDatabase {
 
       const res = await Database.db.findOneAndUpdate(
         "users",
-        { _id } as Pick<User, "_id">,
-        updateFields as Partial<Pick<User, "avatarUrl" | "displayName" | "password" | "email">>,
+        { username: model.username } as Pick<User, "username">,
+        updateFields as Partial<
+          Pick<User, "avatarUrl" | "displayName" | "password" | "email">
+        >,
       );
 
       return res as WithId<User> | null | undefined;
