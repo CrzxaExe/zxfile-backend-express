@@ -276,19 +276,16 @@ class UserDatabase {
   static async findOneAndupdate(
     model: Partial<
       Pick<User, "avatarUrl" | "displayName" | "password" | "email"> & {
-        _id: string;
+        username: string;
       }
     >,
   ): Promise<WithId<User> | null | undefined> {
     try {
-      const _id = new ObjectId(model._id);
-
       if (model.password) model.password = await bcrypt.hash(model.password, 8);
 
-      delete model._id;
       const res = await Database.db.findOneAndUpdate(
         "users",
-        { _id } as Pick<User, "_id">,
+        { username: model.username } as Pick<User, "username">,
         model as Partial<Pick<User, "avatarUrl" | "displayName" | "password">>,
       );
 

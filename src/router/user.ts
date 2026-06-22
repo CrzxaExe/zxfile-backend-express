@@ -2,7 +2,9 @@ import { Router, Request, Response } from "express";
 import { Database } from "../utils/Database";
 import { Terminal } from "../utils/Terminal";
 import { User } from "../types/Schema-Type";
-import { ObjectId } from "mongodb";
+import { ObjectId, WithId } from "mongodb";
+import jwt from "jsonwebtoken";
+import { AuthRequest } from "../middleware/authentication";
 
 const userRouter = Router();
 
@@ -14,7 +16,10 @@ userRouter.post("/", async (req: Request, res: Response) => {
   const { username, email, password } = req.body;
 
   if (!username || username.length < 6) {
-    res.status(400).json({ success: false, error: "Username must be at least 6 characters" });
+    res.status(400).json({
+      success: false,
+      error: "Username must be at least 6 characters",
+    });
     return;
   }
   if (!email) {
@@ -22,7 +27,10 @@ userRouter.post("/", async (req: Request, res: Response) => {
     return;
   }
   if (!password || password.length < 8) {
-    res.status(400).json({ success: false, error: "Password must be at least 8 characters" });
+    res.status(400).json({
+      success: false,
+      error: "Password must be at least 8 characters",
+    });
     return;
   }
 
@@ -125,13 +133,35 @@ userRouter.delete("/:id", async (req: Request, res: Response) => {
  * PATCH /user/:id
  * Update user data
  */
-userRouter.patch("/:id", async (req: Request, res: Response) => {
-  const id = req.params["id"] as string;
-  const { displayName, avatarUrl, password } = req.body;
-  const model = { displayName, avatarUrl, password, _id: id };
+userRouter.patch("/", async (req: Request, res: Response) => {
+  const token = req.cookies?.auth as string | undefined;
+
+  if (!token) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const decode = jwt.verify(
+    token,
+    process.env.JWT_SECRET || "here",
+  ) as AuthRequest["user"];
+
+  if (!decode) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const username = decode.username;
+
+  const model = { ...req.body, username };
 
   try {
-    const user = await Database.user.findOneAndupdate(model);
+    const user: Partial<WithId<User>> | undefined | null =
+      await Database.user.findOneAndupdate(model);
+
+    if (!user) throw new Error("User cant be updated");
+    delete user?.password;
+    delete user?.createAt;
 
     res.status(200).json({ success: true, user });
   } catch (error: { message: string } | any) {

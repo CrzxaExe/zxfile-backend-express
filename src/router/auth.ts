@@ -91,8 +91,14 @@ authRouter.post("/login", async (req: Request, res: Response) => {
       maxAge: 60 * 60 * 24 * 1000, // 1 day in ms
     });
 
-    // Return username so frontend can store it (needed as context.author in image upload)
-    res.status(200).json({ success: true, username: exist.username });
+    // Return username + _id so frontend can update profile without extra lookup
+    res
+      .status(200)
+      .json({
+        success: true,
+        username: exist.username,
+        userId: exist._id.toString(),
+      });
   } catch (error: Error | any) {
     Terminal.error("Login error", error);
     res.status(400).json({ error: error.message });
@@ -106,6 +112,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
 authRouter.post("/auth/logout", async (req: Request, res: Response) => {
   try {
     res.clearCookie("auth");
+    res.status(200).json({ success: true });
   } catch (error: Error | any) {
     Terminal.error("Logout Error", error);
     res.status(400).json({ error: error.message });
