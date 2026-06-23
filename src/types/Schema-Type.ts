@@ -12,6 +12,7 @@ export type Image = {
     author: string;
     mimetype: string;
   };
+  visit?: number;
 
   createAt: string;
   deleted?: boolean;

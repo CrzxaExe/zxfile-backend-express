@@ -1,21 +1,6 @@
-# Zxifile Backend (Express)
+# Zxifile Backend
 
-Backend API untuk Zxifile menggunakan **Express.js** + **TypeScript** + **MongoDB**, dikonversi dari versi Elysia.
-
-## Tech Stack
-
-| Elysia (original) | Express (this repo) |
-|---|---|
-| `elysia` | `express` |
-| `@elysiajs/cors` | `cors` |
-| `elysia-helmet` | `helmet` |
-| `@elysiajs/jwt` | `jsonwebtoken` |
-| `elysia-rate-limit` | `express-rate-limit` |
-| `@elysiajs/swagger` | `swagger-ui-express` |
-| `@elysiajs/node` | _(native Node.js)_ |
-| `@yolk-oss/elysia-env` | `dotenv` + manual validation |
-| `t.Files()` body validation | `multer` |
-| Bun runtime | Node.js runtime |
+Backend API untuk Zxifile menggunakan **Express.js** + **TypeScript** + **MongoDB**.
 
 ## Project Structure
 
@@ -88,7 +73,7 @@ npm run start:prod
 | GET | `/user/id/:id` | Get user by ObjectId | No |
 | GET | `/user/:username` | Search users by username | No |
 | DELETE | `/user/:id` | Soft-delete user | No |
-| PATCH | `/user/:id` | Update user | No |
+| PATCH | `/user/` | Update user | ✅ Cookie JWT |
 | POST | `/drive/upload` | Upload image(s) to GDrive | ✅ Cookie JWT |
 | DELETE | `/drive/delete/:id` | Delete image from GDrive | ✅ Cookie JWT |
 | POST | `/image/create` | Create image metadata | No |

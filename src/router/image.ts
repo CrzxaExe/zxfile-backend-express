@@ -23,9 +23,9 @@ imageRouter.get("/q/:id", async (req: Request, res: Response) => {
   const useOriginal = req.query["original"] === "true";
 
   try {
-    const image = (await Database.db.findOne("images", {
+    const image = (await Database.db.findOneAndUpdateManual("images", {
       imageId: id,
-    } as Pick<Image, "imageId">)) as Partial<Image> | undefined;
+    } as Pick<Image, "imageId">, { $inc: { visit: 1 } })) as Partial<Image> | undefined;
 
     if (!image || image.deleted) {
       res.status(404).json({ error: "Image not found" });
@@ -95,6 +95,7 @@ imageRouter.get("/image/explore", async (req: Request, res: Response) => {
       createAt: e.createAt,
       author: e.context?.author ?? "unknown",
       mimetype: e.context?.mimetype ?? "image/jpeg",
+      visit: e.visit ?? 0,
     }));
 
     res.status(200).json(mapped);

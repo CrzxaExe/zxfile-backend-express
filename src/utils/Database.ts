@@ -9,6 +9,9 @@ import {
   MongoClient,
   ObjectId,
   ServerApiVersion,
+  Sort,
+  UpdateOptions,
+  UpdateResult,
   WithId,
 } from "mongodb";
 import { Terminal } from "./Terminal";
@@ -184,6 +187,39 @@ class UniversalDatabase {
   }
 
   /**
+   * Update one item from database collection with matching finder
+   * @param collection name of collection
+   * @param finder finder object
+   * @param updated data have to be updated
+   * @param options options of operation
+   * @returns updated data
+   */
+  static async findOneAndUpdateManual<T extends keyof Entities>(
+    collection: T,
+    finder: PartialEntity<T>,
+    updated: any,
+    options: FindOneAndUpdateOptions & { includeResultMetadata: boolean } = {
+      includeResultMetadata: false,
+    },
+  ): Promise<WithId<Entities[typeof collection]> | null | undefined> {
+    const client = await Database.GetConnection();
+
+    try {
+      const col = client.db(process.env.APP_NAME!).collection(collection);
+
+      const res = (await col?.findOneAndUpdate(
+        finder as any,
+        updated,
+        options,
+      )) as WithId<Entities[T]> | null | undefined;
+
+      return res;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
    * Delete one item from database collection with matching finder
    * @param collection name of collection
    * @param finder finder object
@@ -206,6 +242,23 @@ class UniversalDatabase {
         | undefined;
 
       return res;
+    } catch (error: unknown) {
+      throw error;
+    }
+  }
+
+  static async updateOne<T extends keyof Entities>(
+    collection: T,
+    finder: PartialEntity<T>,
+    updated: any,
+    options: UpdateOptions & { sort?: Sort } = {},
+  ): Promise<UpdateResult<Document> | undefined> {
+    const client = await Database.GetConnection();
+
+    try {
+      const col = client.db(process.env.APP_NAME!).collection(collection);
+
+      return await col?.updateOne(finder, updated, options);
     } catch (error: unknown) {
       throw error;
     }
