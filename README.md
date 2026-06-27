@@ -11,6 +11,7 @@ backend-express/
 │   ├── index.ts              # Express app setup
 │   ├── router/
 │   │   ├── index.ts          # Route aggregator
+│   │   ├── admininstrator.ts # Admin routes
 │   │   ├── auth.ts           # Auth routes (register, login)
 │   │   ├── user.ts           # User CRUD routes
 │   │   ├── image.ts          # Image metadata routes
@@ -64,21 +65,24 @@ npm run start:prod
 
 ## API Endpoints
 
-| Method | Path | Description | Auth |
-|---|---|---|---|
-| GET | `/` | Health check | No |
-| POST | `/auth/register` | Register account _(deprecated)_ | No |
-| POST | `/auth/login` | Login, sets `auth` cookie | No |
-| POST | `/user` | Create user | No |
-| GET | `/user/id/:id` | Get user by ObjectId | No |
-| GET | `/user/:username` | Search users by username | No |
-| DELETE | `/user/:id` | Soft-delete user | No |
-| PATCH | `/user/` | Update user | ✅ Cookie JWT |
-| POST | `/drive/upload` | Upload image(s) to GDrive | ✅ Cookie JWT |
-| DELETE | `/drive/delete/:id` | Delete image from GDrive | ✅ Cookie JWT |
-| POST | `/image/create` | Create image metadata | No |
-| DELETE | `/image/delete/:id` | Delete image metadata | No |
-| PATCH | `/image/update/:id` | Update image metadata | No |
+| Method | Path                       | Description                     | Auth            |
+| ------ | -------------------------- | ------------------------------- | --------------- |
+| GET    | `/`                        | Health check                    | No              |
+| POST   | `/auth/register`           | Register account _(deprecated)_ | No              |
+| POST   | `/auth/login`              | Login, sets `auth` cookie       | No              |
+| POST   | `/user`                    | Create user                     | No              |
+| GET    | `/user/id/:id`             | Get user by ObjectId            | No              |
+| GET    | `/user/:username`          | Search users by username        | No              |
+| DELETE | `/user/:id`                | Soft-delete user                | ✅ Cookie JWT   |
+| PATCH  | `/user/`                   | Update user                     | ✅ Cookie JWT   |
+| POST   | `/drive/upload`            | Upload image(s) to GDrive       | ✅ Cookie JWT   |
+| DELETE | `/drive/delete/:id`        | Soft delete image from GDrive   | ✅ Cookie JWT   |
+| POST   | `/image/create`            | Create image metadata           | ✅ Cookie JWT   |
+| DELETE | `/image/delete/:id`        | Delete image metadata           | ✅ Cookie JWT   |
+| PATCH  | `/image/update/:id`        | Update image metadata           | ✅ Cookie JWT   |
+| GET    | `/image/dashboard`         | Get user dashboard              | ✅ Cookie JWT   |
+| GET    | `/image/explore`           | Get latest uploaded images      | No              |
+| DELETE | `/admin/image/delete/:key` | Hard delete all deleted images  | Application Key |
 
 ## Docs
 

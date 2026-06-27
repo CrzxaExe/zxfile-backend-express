@@ -4,7 +4,7 @@ import { Terminal } from "../utils/Terminal";
 import { User } from "../types/Schema-Type";
 import { ObjectId, WithId } from "mongodb";
 import jwt from "jsonwebtoken";
-import { AuthRequest } from "../middleware/authentication";
+import authentication, { AuthRequest } from "../middleware/authentication";
 
 const userRouter = Router();
 
@@ -105,29 +105,33 @@ userRouter.get("/:username", async (req: Request, res: Response) => {
  * DELETE /user/:id
  * Soft-delete user from database
  */
-userRouter.delete("/:id", async (req: Request, res: Response) => {
-  const id = req.params["id"] as string;
+userRouter.delete(
+  "/:id",
+  authentication,
+  async (req: Request, res: Response) => {
+    const id = req.params["id"] as string;
 
-  try {
-    const user = (await Database.db.findOneAndUpdate(
-      "users",
-      { _id: new ObjectId(id) } as Pick<User, "_id">,
-      { deleted: true } as Partial<User>,
-    )) as Partial<User> | undefined;
+    try {
+      const user = (await Database.db.findOneAndUpdate(
+        "users",
+        { _id: new ObjectId(id) } as Pick<User, "_id">,
+        { deleted: true } as Partial<User>,
+      )) as Partial<User> | undefined;
 
-    if (!user) {
-      res.status(404).json({});
-      return;
+      if (!user) {
+        res.status(404).json({});
+        return;
+      }
+
+      delete user.password;
+
+      res.status(200).json(user);
+    } catch (error: { message: string } | any) {
+      Terminal.error(req.path, error);
+      res.status(400).json({ success: false, error: error.message });
     }
-
-    delete user.password;
-
-    res.status(200).json(user);
-  } catch (error: { message: string } | any) {
-    Terminal.error(req.path, error);
-    res.status(400).json({ success: false, error: error.message });
-  }
-});
+  },
+);
 
 /**
  * PATCH /user/:id

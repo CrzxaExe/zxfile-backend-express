@@ -4,6 +4,7 @@ import authRouter from "./auth";
 import imageRouter from "./image";
 import driveRouter from "./drive";
 import userRouter from "./user";
+import adminRoute from "./administrator";
 
 /**
  * Application route controller
@@ -29,5 +30,8 @@ router.use("/drive", driveRouter);
 
 // User routes
 router.use("/user", userRouter);
+
+// Admin routes
+router.use("/admin", adminRoute);
 
 export default router;
