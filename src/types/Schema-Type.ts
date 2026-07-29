@@ -13,6 +13,7 @@ export type Image = {
     mimetype: string;
   };
   visit?: number;
+  isPrivate?: boolean;
 
   createAt: string;
   deleted?: boolean;

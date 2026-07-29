@@ -98,6 +98,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
         success: true,
         username: exist.username,
         userId: exist._id.toString(),
+        avatarUrl: exist.avatarUrl,
       });
   } catch (error: Error | any) {
     Terminal.error("Login error", error);

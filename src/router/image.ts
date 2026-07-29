@@ -79,13 +79,14 @@ imageRouter.get("/q/:id", async (req: Request, res: Response) => {
  */
 imageRouter.get("/image/explore", async (req: Request, res: Response) => {
   const limit = Math.min(parseInt(req.query["limit"] as string) || 60, 100);
+  const skip = parseInt(req.query["limit"] as string) || 0;
 
   try {
     const images = await Database.db.findMany(
       "images",
-      {},
-      { sort: { createAt: -1 }, limit },
-      false,
+      { isPrivate: { $ne: true } },
+      { sort: { createAt: -1 }, limit, skip },
+      true,
     );
 
     if (!images || images.length === 0) {
@@ -117,7 +118,7 @@ imageRouter.post(
   "/image/create",
   authentication,
   async (req: Request, res: Response) => {
-    const { context, imageId, optimizedImageId, title } = req.body;
+    const { context, imageId, optimizedImageId, title, isPrivate } = req.body;
 
     if (!title) {
       res.status(400).json({ error: "Missing image title" });
@@ -156,6 +157,7 @@ imageRouter.post(
         imageDriveId: imageId,
         optimizedImageDriveId: optimizedImageId,
         context,
+        isPrivate: isPrivate ?? false,
         title,
       });
 
@@ -222,8 +224,8 @@ imageRouter.patch(
   authentication,
   async (req: Request, res: Response) => {
     const id = req.params["id"] as string;
-    const { title, context } = req.body as Partial<
-      Pick<Image, "title" | "context">
+    const { title, context, isPrivate } = req.body as Partial<
+      Pick<Image, "title" | "context" | "isPrivate">
     >;
 
     if (!title && !context) {
@@ -244,6 +246,7 @@ imageRouter.patch(
       // Build update payload — only include provided fields
       const updatePayload: Partial<Image> = {};
       if (title) updatePayload.title = title;
+      if (isPrivate) updatePayload.isPrivate = isPrivate;
       if (context) {
         // Validate context fields if provided
         if (context.author !== undefined) {
