@@ -228,7 +228,7 @@ imageRouter.patch(
       Pick<Image, "title" | "context" | "isPrivate">
     >;
 
-    if (!title && !context && !isPrivate) {
+    if ((!title && !context && isPrivate === null) || Object.keys(req.body).length === 0) {
       res.status(400).json({ error: "No fields to update provided" });
       return;
     }
