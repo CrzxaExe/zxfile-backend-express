@@ -79,12 +79,16 @@ imageRouter.get("/q/:id", async (req: Request, res: Response) => {
  */
 imageRouter.get("/image/explore", async (req: Request, res: Response) => {
   const limit = Math.min(parseInt(req.query["limit"] as string) || 60, 100);
-  const skip = parseInt(req.query["limit"] as string) || 0;
+  const skip = parseInt(req.query["skip"] as string) || 0;
+  const query = req.query["q"] as string;
+
+  const filter: { isPrivate: { $ne: boolean }; title?: string } = { isPrivate: { $ne: true } };
+  if(query && query.length > 0) filter.title = query;
 
   try {
     const images = await Database.db.findMany(
       "images",
-      { isPrivate: { $ne: true } },
+      filter,
       { sort: { createAt: -1 }, limit, skip },
       true,
     );
@@ -321,7 +325,7 @@ imageRouter.get(
       );
 
       if (!images || images.length < 1) {
-        res.status(404).json([]);
+        res.status(200).json([]);
         return;
       }
       const mappedImages = [...images].map((e: Partial<Image>) => {
