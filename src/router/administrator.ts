@@ -2,6 +2,8 @@ import { Request, Response, Router } from "express";
 import { Terminal } from "../utils/Terminal";
 import { Database } from "../utils/Database";
 import { GDrive } from "../services/GDrive";
+import { WithId } from "mongodb";
+import { User } from "../types/Schema-Type";
 
 const adminRoute = Router();
 
@@ -15,6 +17,7 @@ adminRoute.delete("/image/delete/:key", async (req: Request, res: Response) => {
 
   if (key !== adminKey) {
     res.status(401).json({ error: "Unauthorized" });
+    return;
   }
 
   try {
@@ -44,5 +47,40 @@ adminRoute.delete("/image/delete/:key", async (req: Request, res: Response) => {
     res.status(400).json({ error: error.message });
   }
 });
+
+adminRoute.patch("/users/update/:key", async(req: Request, res: Response) => {
+  const { key } = req.params;
+  const adminKey = process.env.ADMIN_KEY;
+  if (!adminKey) {
+    res.status(444).json({ error: "No Response" });
+    return;
+  }
+
+  if (key !== adminKey) {
+    res.status(401).json({ error: "Unauthorized" });
+    return
+  }
+
+  if (!req.body.username) {
+    res.status(404).json({ error: "No username provided" });
+    return;
+  }
+  
+  const model = { ...req.body };
+
+  try {
+    const user: Partial<WithId<User>> | undefined | null =
+      await Database.user.findOneAndupdate(model);
+
+    if (!user) throw new Error("User cant be updated");
+    delete user?.password;
+    delete user?.createAt;
+
+    res.status(200).json({ success: true, user });
+  } catch (error: { message: string } | any) {
+    Terminal.error(error);
+    res.status(400).json({ success: false, error });
+  }
+})
 
 export default adminRoute;

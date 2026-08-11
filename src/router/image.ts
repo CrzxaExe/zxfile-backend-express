@@ -306,6 +306,17 @@ imageRouter.get(
   "/image/user/:username",
   async (req: Request, res: Response) => {
     const username = req.params["username"] as string;
+    const token = req.cookies?.auth as string | undefined;
+    const filter: { "context.author": string; isPrivate?: { $ne: boolean } } = { "context.author": username, isPrivate:  { $ne: true } };
+
+    if(token) {
+	const decoded = jwt.verify(
+	  token,
+	  process.env.JWT_SECRET || "here",
+	) as AuthRequest["user"];
+
+	if(decoded?.username === username) filter.isPrivate = undefined;
+    }
 
     try {
       const author = await Database.db.findOne("users", { username });
@@ -317,9 +328,7 @@ imageRouter.get(
 
       const images = await Database.db.findMany(
         "images",
-        {
-          "context.author": username,
-        } as any,
+        filter,
         {},
         false, // exact match, not regex (nested field)
       );
