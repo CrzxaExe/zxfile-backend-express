@@ -21,6 +21,7 @@ const imageRouter = Router();
 imageRouter.get("/q/:id", async (req: Request, res: Response) => {
   const id = req.params["id"] as string;
   const useOriginal = req.query["original"] === "true";
+  const isPublic = req.query["public"] === "false";
 
   try {
     const image = (await Database.db.findOneAndUpdateManual(
@@ -47,6 +48,7 @@ imageRouter.get("/q/:id", async (req: Request, res: Response) => {
 
     // --- CORS & security headers for cross-origin image embedding ---
     res.setHeader("Access-Control-Allow-Origin", "*");
+    if(isPublic) res.removeHeader("Access-Control-Allow-Credentials");
     res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     res.setHeader("Content-Type", mimeType);
     // Cache for 7 days in browser, 30 days on CDN
