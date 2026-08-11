@@ -21,7 +21,7 @@ const imageRouter = Router();
 imageRouter.get("/q/:id", async (req: Request, res: Response) => {
   const id = req.params["id"] as string;
   const useOriginal = req.query["original"] === "true";
-  const isPublic = req.query["public"] === "false";
+  const isPublic = req.query["public"] === "true";
 
   try {
     const image = (await Database.db.findOneAndUpdateManual(
