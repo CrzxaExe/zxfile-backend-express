@@ -310,7 +310,7 @@ imageRouter.get(
   async (req: Request, res: Response) => {
     const username = req.params["username"] as string;
     const token = req.cookies?.auth as string | undefined;
-    const filter: { "context.author": string; isPrivate?: { $ne: boolean } } = { "context.author": username, isPrivate:  { $ne: true } };
+    const filter: { "context.authorUsername": string; isPrivate?: { $ne: boolean } } = { "context.authorUsername": username, isPrivate:  { $ne: true } };
 
     if(token) {
 	const decoded = jwt.verify(
