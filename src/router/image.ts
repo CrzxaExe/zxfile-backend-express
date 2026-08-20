@@ -392,7 +392,7 @@ imageRouter.get("/image/dashboard", async (req: Request, res: Response) => {
     const images = await Database.db.findMany(
       "images",
       {
-        "context.author": decoded.username,
+        "context.authorUsername": decoded.username,
       } as any,
       { sort: { createAt: -1 } },
       false, // exact match, not regex (nested field)
