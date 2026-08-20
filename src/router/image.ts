@@ -105,6 +105,7 @@ imageRouter.get("/image/explore", async (req: Request, res: Response) => {
       title: e.title,
       createAt: e.createAt,
       author: e.context?.author ?? "unknown",
+      authorUsername: e.context?.authorUsername ?? "unknown",
       mimetype: e.context?.mimetype ?? "image/jpeg",
       visit: e.visit ?? 0,
     }));
