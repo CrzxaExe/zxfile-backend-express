@@ -17,6 +17,7 @@ import {
 import { Terminal } from "./Terminal";
 import { Entities, PartialEntity, User } from "../types/Schema-Type";
 import bcrypt from "bcryptjs";
+import { Schema } from "./Schema";
 
 let connection: MongoClient | null = null;
 let connectingPromise: Promise<MongoClient> | null = null;
@@ -247,6 +248,14 @@ class UniversalDatabase {
     }
   }
 
+  /**
+   * Update one item
+   * @param collection name of collection
+   * @param finder finder object
+   * @param updated updated user
+   * @param options option of operation
+   * @returns item before updated
+   */
   static async updateOne<T extends keyof Entities>(
     collection: T,
     finder: PartialEntity<T>,
@@ -259,6 +268,52 @@ class UniversalDatabase {
       const col = client.db(process.env.APP_NAME!).collection(collection);
 
       return await col?.updateOne(finder, updated, options);
+    } catch (error: unknown) {
+      throw error;
+    }
+  }
+
+  /**
+   * Update all item
+   * @param collection name of collection
+   * @param finder finder object
+   * @param updated updated fields
+   * @param options option of operation
+   * @returns item before updated
+   */
+  static async updateMany<T extends keyof Entities>(
+    collection: T,
+    finder: PartialEntity<T>,
+    updated: any,
+    options: UpdateOptions & { sort?: Sort } = {},
+  ):  Promise<UpdateResult<Document> | undefined> {
+    const client = await Database.Connect();
+
+    try {
+      const col = client.db(process.env.APP_NAME!).collection(collection);
+
+      return await col?.updateMany(finder, updated, options);
+    } catch (error: unknown) {
+      throw error;
+    }
+  }
+
+  static async getAll<T extends keyof Entities>(
+    collection: T,
+    fields: ObjectKeys<Entities[T]>[] = [],
+    reverse: boolean = false,
+    options: FindOptions & Abortable = {},
+  ) {
+    try {
+      const keys = Schema.keyFilter(collection, fields);
+
+      const projection: Record<ObjectKeys<Entities[T]>, number> = keys.reduce((all, curr: keyof Entities[T]) => {
+        all[curr] = reverse ? 1 : 0;
+
+        return all;
+      }, {} as Record<ObjectKeys<Entities[T]>, number>);
+
+      return await Database.db.findMany(collection, { deleted: { $ne: true }}, { projection, ...options });
     } catch (error: unknown) {
       throw error;
     }
@@ -326,6 +381,11 @@ class UserDatabase {
     }
   }
 
+  /**
+   * Update one user from database
+   * @param model user object
+   * @returns user object before updated
+   */
   static async findOneAndupdate(
     model: Partial<
       Pick<
@@ -365,6 +425,25 @@ class UserDatabase {
       return res as WithId<User> | null | undefined;
     } catch (error: unknown) {
       throw error;
+    }
+  }
+
+  /**
+   * Get all user
+   * @param fields key of user
+   * @param reverse how data has been get, if true return only field not on the list
+   * @returns projected user
+   */
+  static async getAll(
+    fields: ObjectKeys<User>[],
+    reverse: boolean = false
+  ): Promise<WithId<Partial<User>>[] | undefined> {
+    try {
+      const res = await Database.db.getAll("users", ["_id","displayName","username"]);
+
+      return res;
+    } catch (error: unknown) {
+      throw error;      
     }
   }
 }

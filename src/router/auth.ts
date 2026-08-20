@@ -3,6 +3,7 @@ import { Database } from "../utils/Database";
 import { Terminal } from "../utils/Terminal";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import authentication from "../middleware/authentication";
 
 const authRouter = Router();
 
@@ -120,5 +121,11 @@ authRouter.post("/logout", async (req: Request, res: Response) => {
     res.status(400).json({ error: error.message });
   }
 });
+
+/**
+ * GET /auth/validate
+ * Validate jwt session
+ */
+authRouter.get("/validate", authentication)
 
 export default authRouter;

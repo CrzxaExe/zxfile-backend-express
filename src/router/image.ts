@@ -331,7 +331,7 @@ imageRouter.get(
       const images = await Database.db.findMany(
         "images",
         filter,
-        {},
+        { sort: { createAt: -1 } },
         false, // exact match, not regex (nested field)
       );
 
@@ -344,7 +344,7 @@ imageRouter.get(
         delete e.optimizedImageDriveId;
         return {
           ...e,
-          url: req.hostname + "/q/" + e.imageId,
+          url: "https://"+req.hostname + "/q/" + e.imageId,
         };
       });
 
@@ -357,7 +357,7 @@ imageRouter.get(
 );
 
 /**
- * GET /image/dahsboard
+ * GET /image/dashboard
  * Get all images for user
  */
 imageRouter.get("/image/dashboard", async (req: Request, res: Response) => {
@@ -406,7 +406,7 @@ imageRouter.get("/image/dashboard", async (req: Request, res: Response) => {
       delete e.optimizedImageDriveId;
       return {
         ...e,
-        url: req.hostname + "/q/" + e.imageId,
+        url: "https://"+req.hostname + "/q/" + e.imageId,
       };
     });
 

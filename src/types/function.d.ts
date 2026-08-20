@@ -1,0 +1,1 @@
+type ObjectKeys<T> = (keyof T);

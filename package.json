@@ -1,6 +1,6 @@
 {
   "name": "backend-express",
-  "version": "1.0.0",
+  "version": "1.2.1",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only index.ts",
     "start": "ts-node index.ts",
