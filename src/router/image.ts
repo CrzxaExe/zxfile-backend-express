@@ -399,7 +399,7 @@ imageRouter.get("/image/dashboard", async (req: Request, res: Response) => {
     );
 
     if (!images || images.length < 1) {
-      res.status(404).json([]);
+      res.status(200).json([]);
       return;
     }
     const mappedImages = [...images].map((e: Partial<Image>) => {
